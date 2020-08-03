@@ -1,22 +1,31 @@
 const gpio = require('pigpio').Gpio;
 const hap = require("hap-nodejs");
+const { exec } = require("child_process");
 
 const Accessory = hap.Accessory;
 const Characteristic = hap.Characteristic;
 const CharacteristicEventTypes = hap.CharacteristicEventTypes;
 const Service = hap.Service;
 
-const accessoryUuid = hap.uuid.generate("basementmaker.projects.rgbledstrip");
-const accessory = new Accessory("RGB LED Strip Accesssory", accessoryUuid);
+const accessoryUuid = hap.uuid.generate("de.nerdis.rgbledstrip");
+const accessory = new Accessory("RGB LED Strip", accessoryUuid);
+
+const accessoryUuid2 = hap.uuid.generate("de.nerdis.outlet");
+const accessory2 = new Accessory("Steckdose", accessoryUuid2);
 
 const lightService = new Service.Lightbulb("RGB LED Strip");
+const outletService = new Service.Outlet("Steckdose")
 
 const onCharacteristic = lightService.getCharacteristic(Characteristic.On);
 const brightnessCharacteristic = lightService.getCharacteristic(Characteristic.Brightness);
 const hueCharacteristic = lightService.getCharacteristic(Characteristic.Hue);
 const saturationCharacteristic = lightService.getCharacteristic(Characteristic.Saturation);
 
-var showLogging = false;
+const onCharacteristic2 = outletService.getCharacteristic(Characteristic.On);
+
+
+
+var showLogging = true;
 var LEDstripStatusIsOn = false;
 var currentLEDbrightness = 0;
 var hue = 0;
@@ -24,6 +33,8 @@ var saturation = 0;
 var redLED = new gpio(17, {mode: gpio.OUTPUT});
 var greenLED = new gpio(22, {mode: gpio.OUTPUT});
 var blueLED = new gpio(24, {mode: gpio.OUTPUT});
+
+var OutletStatusIsOn = false;
 
 redLED.pwmWrite(0);
 greenLED.pwmWrite(0);
@@ -36,6 +47,22 @@ var blueValue = 0;
 var brightnessChanged = false;
 var hueChanged = false;
 var saturationChanged = false;
+
+onCharacteristic2.on(CharacteristicEventTypes.GET, callback => {
+  if (showLogging) { console.log("Queried current light state: " + OutletStatusIsOn); }
+  callback(undefined, OutletStatusIsOn);
+});
+onCharacteristic2.on(CharacteristicEventTypes.SET, (value, callback) => {
+  if (showLogging) { console.log("Setting light state to: " + value); }
+  if (value == true && OutletStatusIsOn == false) {
+    exec("./send 00101 2 1")
+  } else {
+    exec("./send 00101 2 0")
+  }
+  OutletStatusIsOn = value;
+  callback();
+});
+
 
 const changeColor = function () {
   if ( (hueChanged && saturationChanged) || brightnessChanged ) {
@@ -164,12 +191,20 @@ saturationCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
 });
 
 accessory.addService(lightService);
+accessory2.addService(outletService);
 
 accessory.publish({
   username: "BB:00:00:00:00:02",
   pincode: "000-00-123",
   port: 47129,
   category: hap.Categories.LIGHTBULB
+});
+
+accessory2.publish({
+  username: "82:32:43:67:90:F8",
+  pincode: "707-69-123",
+  port: 47128,
+  category: hap.Categories.OUTLET
 });
 
 console.log("Running!");
