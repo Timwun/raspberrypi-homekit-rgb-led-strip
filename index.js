@@ -1,6 +1,6 @@
 const gpio = require('pigpio').Gpio;
 const hap = require("hap-nodejs");
-const { exec } = require("child_process");
+const {exec} = require("child_process");
 
 const Accessory = hap.Accessory;
 const Characteristic = hap.Characteristic;
@@ -24,8 +24,7 @@ const saturationCharacteristic = lightService.getCharacteristic(Characteristic.S
 const onCharacteristic2 = outletService.getCharacteristic(Characteristic.On);
 
 
-
-var showLogging = true;
+var showLogging = false;
 var LEDstripStatusIsOn = false;
 var currentLEDbrightness = 0;
 var hue = 0;
@@ -49,11 +48,15 @@ var hueChanged = false;
 var saturationChanged = false;
 
 onCharacteristic2.on(CharacteristicEventTypes.GET, callback => {
-  if (showLogging) { console.log("Queried current light state: " + OutletStatusIsOn); }
+  if (showLogging) {
+    console.log("Queried current light state: " + OutletStatusIsOn);
+  }
   callback(undefined, OutletStatusIsOn);
 });
 onCharacteristic2.on(CharacteristicEventTypes.SET, (value, callback) => {
-  if (showLogging) { console.log("Setting light state to: " + value); }
+  if (showLogging) {
+    console.log("Setting light state to: " + value);
+  }
   if (value == true && OutletStatusIsOn == false) {
     exec("./send 00101 2 1")
   } else {
@@ -65,14 +68,16 @@ onCharacteristic2.on(CharacteristicEventTypes.SET, (value, callback) => {
 
 
 const changeColor = function () {
-  if ( (hueChanged && saturationChanged) || brightnessChanged ) {
-    if (showLogging) { console.log("changing color ..."); }
+  if ((hueChanged && saturationChanged) || brightnessChanged) {
+    if (showLogging) {
+      console.log("changing color ...");
+    }
     var h, s, v;
     var r, g, b;
 
-    h = hue/360;
-    s = saturation/100;
-    v = currentLEDbrightness/100;
+    h = hue / 360;
+    s = saturation / 100;
+    v = currentLEDbrightness / 100;
 
     var i = Math.floor(h * 6);
     var f = h * 6 - i;
@@ -80,32 +85,56 @@ const changeColor = function () {
     var q = v * (1 - f * s);
     var t = v * (1 - (1 - f) * s);
 
-    switch(i % 6){
-      case 0: r = v, g = t, b = p; break;
-      case 1: r = q, g = v, b = p; break;
-      case 2: r = p, g = v, b = t; break;
-      case 3: r = p, g = q, b = v; break;
-      case 4: r = t, g = p, b = v; break;
-      case 5: r = v, g = p, b = q; break;
+    switch (i % 6) {
+      case 0:
+        r = v, g = t, b = p;
+        break;
+      case 1:
+        r = q, g = v, b = p;
+        break;
+      case 2:
+        r = p, g = v, b = t;
+        break;Strip
+      case 3:
+        r = p, g = q, b = v;
+        break;
+      case 4:
+        r = t, g = p, b = v;
+        break;
+      case 5:
+        r = v, g = p, b = q;
+        break;
     }
 
     r = Math.floor(r * 255);
     g = Math.floor(g * 255);
     b = Math.floor(b * 255);
 
-    if ( r < 25 ) { r = 0 } // helper for poor performing rgb leds, they are too bright at low values. comment out line if needed
-    if ( g < 25 ) { g = 0 } // same as ^
-    if ( b < 25 ) { b = 0 } // same as ^
+    if (r < 25) {
+      r = 0
+    } // helper for poor performing rgb leds, they are too bright at low values. comment out line if needed
+    if (g < 25) {
+      g = 0
+    } // same as ^
+    if (b < 25) {
+      b = 0
+    } // same as ^
 
     redValue = r;
     greenValue = g;
     blueValue = b;
 
-    if (showLogging) { console.log("Red: "+r); }
-    if (showLogging) { console.log("Green: "+g); }
-    if (showLogging) { console.log("Blue: "+b); }
+    if (showLogging) {
+      console.log("Red: " + r);
+    }
+    if (showLogging) {
+      console.log("Green: " + g);
+    }
+    if (showLogging) {
+      console.log("Blue: " + b);
+    }
 
-    if ( LEDstripStatusIsOn ) {
+    if (LEDstripStatusIsOn) {
       redLED.pwmWrite(r);
       greenLED.pwmWrite(g);
       blueLED.pwmWrite(b);
@@ -118,15 +147,21 @@ const changeColor = function () {
 }
 
 onCharacteristic.on(CharacteristicEventTypes.GET, callback => {
-  if (showLogging) { console.log("Is RGB LED Strip On?: " + LEDstripStatusIsOn); }
+  if (showLogging) {
+    console.log("Is RGB LED Strip On?: " + LEDstripStatusIsOn);
+  }
   callback(undefined, LEDstripStatusIsOn);
 });
 
 onCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
-  if (showLogging) { console.log("Setting RGB LED Strip On: " + value); }
-  if (showLogging) { console.log("LEDstripStatusIsOn: " + LEDstripStatusIsOn); }
-  if ( value == true && LEDstripStatusIsOn == false) {
-    if ( currentLEDbrightness == 0 ) {
+  if (showLogging) {
+    console.log("Setting RGB LED Strip On: " + value);
+  }
+  if (showLogging) {
+    console.log("LEDstripStatusIsOn: " + LEDstripStatusIsOn);
+  }
+  if (value == true && LEDstripStatusIsOn == false) {
+    if (currentLEDbrightness == 0) {
       currentLEDbrightness = 100;
       hue = 251;
       saturation = 5;
@@ -139,7 +174,7 @@ onCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
       greenLED.pwmWrite(greenValue);
       blueLED.pwmWrite(blueValue);
     }
-  } else if ( value == false ) {
+  } else if (value == false) {
     redLED.pwmWrite(0);
     greenLED.pwmWrite(0);
     blueLED.pwmWrite(0);
@@ -151,39 +186,51 @@ onCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
 });
 
 brightnessCharacteristic.on(CharacteristicEventTypes.GET, (callback) => {
-  if (showLogging) { console.log("Current Strip brightness level?: " + currentLEDbrightness); }
+  if (showLogging) {
+    console.log("Current Strip brightness level?: " + currentLEDbrightness);
+  }
   callback(undefined, currentLEDbrightness);
 });
 
 brightnessCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
-  if (showLogging) { console.log("Setting Strip brightness level to: " + value); }
-  var val = parseInt(255*(value/100), 10);
-  currentLEDbrightness = Math.ceil((val/255)*100);
+  if (showLogging) {
+    console.log("Setting Strip brightness level to: " + value);
+  }
+  var val = parseInt(255 * (value / 100), 10);
+  currentLEDbrightness = Math.ceil((val / 255) * 100);
   brightnessChanged = true;
-	changeColor();
+  changeColor();
   callback();
 });
 
 hueCharacteristic.on(CharacteristicEventTypes.GET, (callback) => {
-  if (showLogging) { console.log("Current Hue level?: " + hue); }
+  if (showLogging) {
+    console.log("Current Hue level?: " + hue);
+  }
   callback(undefined, currentLEDbrightness);
 });
 
 hueCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
-  if (showLogging) { console.log("Setting Hue to: " + value); }
+  if (showLogging) {
+    console.log("Setting Hue to: " + value);
+  }
   hue = value;
-	hueChanged = true;
-	changeColor();
+  hueChanged = true;
+  changeColor();
   callback();
 });
 
 saturationCharacteristic.on(CharacteristicEventTypes.GET, (callback) => {
-  if (showLogging) { console.log("Current Saturation?: " + saturation); }
+  if (showLogging) {
+    console.log("Current Saturation?: " + saturation);
+  }
   callback(undefined, currentLEDbrightness);
 });
 
 saturationCharacteristic.on(CharacteristicEventTypes.SET, (value, callback) => {
-  if (showLogging) { console.log("Setting Saturation to: " + value); }
+  if (showLogging) {
+    console.log("Setting Saturation to: " + value);
+  }
   saturation = value;
   saturationChanged = true;
   changeColor();
@@ -208,4 +255,4 @@ accessory2.publish({
 });
 
 console.log("Running!");
-console.log("Device Pin Code: 000-00-123");
+console.log("Device Pin Code: 000-00-123, 707-69-123")
